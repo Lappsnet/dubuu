@@ -191,3 +191,36 @@ Execute integration tests against a local validator instance:
 anchor test
 # Or, if localnet is managed separately:
 # anchor test --skip-local-validator
+
+### Operational Flows (Usage)
+The Dubuu Marketplace dApp enables distinct operational pathways tailored to different user roles, ensuring a structured and secure interaction with the platform's functionalities. These flows are orchestrated by invoking specific instructions on the smart contract.
+
+Marketplace Administrator Flow:
+
+Initialization: The administrator is responsible for the initial setup of the marketplace by invoking initialize_config. This crucial step establishes the MarketplaceConfig PDA, defining foundational parameters such as the designated Perena USD* mint, the treasury account for fee collection, initial listing fees, sales commission rates, and the administrative pubkey itself.
+
+Configuration Management: Post-initialization, the admin can modify operational parameters using update_config. This allows for dynamic adjustment of fees, commission rates, the treasury account, the master admin key, and the ability to pause or unpause core marketplace activities, providing essential governance and risk management capabilities.
+
+Asset Verification Oversight: The admin plays a key role in the asset integrity process by using admin_update_ownership_verification. This instruction allows the admin to review submitted ownership proofs (managed off-chain but referenced) and update an asset's OwnershipStatus on-chain (e.g., from PendingReview to Verified or Rejected), thereby curating the quality and legitimacy of assets available for auction.
+
+Operational Control: The is_paused flag in MarketplaceConfig allows the admin to temporarily halt new listings or auctions during maintenance or critical updates.
+
+Asset Owner/Seller Flow:
+
+Asset Registration: An owner begins by registering their automotive asset using register_asset_and_submit_docs_ref. This creates an AssetAccount PDA, linking the asset to their Solana identity and an IPFS CID (walrus_main_metadata_cid) which points to detailed off-chain metadata and documentation. The initial status is typically set to NotSubmitted or PendingReview.
+
+Listing for Auction: Once an asset's OwnershipStatus is Verified by the administrator, the owner can list it for sale by calling list_asset_for_auction. This action creates an AuctionAccount PDA, sets the starting price and duration, and updates the AssetAccount's asset_listed_status to InAuction. A listing fee in Perena USD* is typically required.
+
+Receiving Sale Proceeds: If the auction concludes successfully with a winning bid, the seller, after the settle_auction_and_transfer instruction is executed by the winner or an authorized party, receives the final sale price (minus the marketplace commission) in Perena USD* to their designated account.
+
+Buyer/Bidder Flow:
+
+Placing Bids: Interested buyers can participate in active auctions by calling place_bid. This instruction requires the bidder to specify their bid amount in Perena USD*. The bid amount is typically transferred to an escrow mechanism managed by the smart contract. If outbid, previous bids might be refunded.
+
+Settlement & Ownership Claim: If a bidder wins an auction (i.e., has the highest_bidder status when the auction EndedSoldPayPending), they (or an authorized party/crank) will execute the settle_auction_and_transfer instruction. This finalizes the payment from the winner's account (or confirms payment from escrow) and updates the current_owner field in the corresponding AssetAccount to the winner's pubkey, effectively transferring on-chain ownership.
+
+Wormhole Relayer Flow (Authorized Personnel):
+
+Attestation Submission: An authorized Wormhole relayer, configured via initialize_wormhole_listener, monitors for specific cross-chain messages (VAAs). Upon receiving a relevant VAA (e.g., attesting to a user's asset balance on an EVM chain), the relayer parses it and submits the validated BalanceAttestationPayload to the process_wormhole_balance_attestation instruction. This creates or updates a CrossChainAttestation account on Solana, making the attested off-chain information available to the Dubuu marketplace logic.
+
+These flows are designed to be atomic where necessary and emit events to allow off-chain services and UIs to track marketplace activity.
