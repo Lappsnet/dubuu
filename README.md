@@ -178,7 +178,7 @@ The smart contract functionality is logically divided as follows:
 ### Building the Program
 
 Compile the Anchor smart contract to BPF bytecode and generate the IDL:
-```bash
+
 anchor build
 
 Testing Suite
@@ -197,30 +197,116 @@ The Dubuu Marketplace dApp enables distinct operational pathways tailored to dif
 
 Marketplace Administrator Flow:
 
-Initialization: The administrator is responsible for the initial setup of the marketplace by invoking initialize_config. This crucial step establishes the MarketplaceConfig PDA, defining foundational parameters such as the designated Perena USD* mint, the treasury account for fee collection, initial listing fees, sales commission rates, and the administrative pubkey itself.
+## User Roles and Flows
 
-Configuration Management: Post-initialization, the admin can modify operational parameters using update_config. This allows for dynamic adjustment of fees, commission rates, the treasury account, the master admin key, and the ability to pause or unpause core marketplace activities, providing essential governance and risk management capabilities.
+### 1. Marketplace Administrator Flow
 
-Asset Verification Oversight: The admin plays a key role in the asset integrity process by using admin_update_ownership_verification. This instruction allows the admin to review submitted ownership proofs (managed off-chain but referenced) and update an asset's OwnershipStatus on-chain (e.g., from PendingReview to Verified or Rejected), thereby curating the quality and legitimacy of assets available for auction.
+The administrator is responsible for the initial setup, ongoing management, and integrity oversight of the marketplace.
 
-Operational Control: The is_paused flag in MarketplaceConfig allows the admin to temporarily halt new listings or auctions during maintenance or critical updates.
+**a. Initialization:**
+   - **Action:** Performs the initial setup of the marketplace.
+   - **Instruction:** `initialize_config`
+   - **Details:** This crucial step establishes the `MarketplaceConfig` Program Derived Address (PDA). It defines foundational parameters such as:
+     - The designated Perena USD* mint.
+     - The treasury account for fee collection.
+     - Initial listing fees.
+     - Sales commission rates.
+     - The administrative public key.
 
-Asset Owner/Seller Flow:
+**b. Configuration Management:**
+   - **Action:** Modifies operational parameters after initialization.
+   - **Instruction:** `update_config`
+   - **Details:** Allows for dynamic adjustment of:
+     - Fees and commission rates.
+     - The treasury account.
+     - The master admin key.
+     - The ability to pause or unpause core marketplace activities (`is_paused` flag), providing essential governance and risk management.
 
-Asset Registration: An owner begins by registering their automotive asset using register_asset_and_submit_docs_ref. This creates an AssetAccount PDA, linking the asset to their Solana identity and an IPFS CID (walrus_main_metadata_cid) which points to detailed off-chain metadata and documentation. The initial status is typically set to NotSubmitted or PendingReview.
+**c. Asset Verification Oversight:**
+   - **Action:** Reviews submitted ownership proofs and updates an asset's `OwnershipStatus` on-chain.
+   - **Instruction:** `admin_update_ownership_verification`
+   - **Details:** The admin reviews off-chain managed ownership proofs (referenced on-chain) and updates the asset's status (e.g., from `PendingReview` to `Verified` or `Rejected`). This curates the quality and legitimacy of assets available for auction.
 
-Listing for Auction: Once an asset's OwnershipStatus is Verified by the administrator, the owner can list it for sale by calling list_asset_for_auction. This action creates an AuctionAccount PDA, sets the starting price and duration, and updates the AssetAccount's asset_listed_status to InAuction. A listing fee in Perena USD* is typically required.
+**d. Operational Control:**
+   - **Mechanism:** The `is_paused` flag within `MarketplaceConfig`.
+   - **Action:** Allows the admin to temporarily halt new listings or auctions, typically during maintenance or critical updates.
 
-Receiving Sale Proceeds: If the auction concludes successfully with a winning bid, the seller, after the settle_auction_and_transfer instruction is executed by the winner or an authorized party, receives the final sale price (minus the marketplace commission) in Perena USD* to their designated account.
+---
 
-Buyer/Bidder Flow:
+### 2. Asset Owner/Seller Flow
 
-Placing Bids: Interested buyers can participate in active auctions by calling place_bid. This instruction requires the bidder to specify their bid amount in Perena USD*. The bid amount is typically transferred to an escrow mechanism managed by the smart contract. If outbid, previous bids might be refunded.
+This flow outlines the journey of an asset owner looking to sell their automotive asset on the marketplace.
 
-Settlement & Ownership Claim: If a bidder wins an auction (i.e., has the highest_bidder status when the auction EndedSoldPayPending), they (or an authorized party/crank) will execute the settle_auction_and_transfer instruction. This finalizes the payment from the winner's account (or confirms payment from escrow) and updates the current_owner field in the corresponding AssetAccount to the winner's pubkey, effectively transferring on-chain ownership.
+**a. Asset Registration:**
+   - **Action:** Registers an automotive asset with the marketplace.
+   - **Instruction:** `register_asset_and_submit_docs_ref`
+   - **Details:**
+     - Creates an `AssetAccount` PDA for the asset.
+     - Links the asset to the owner's Solana identity.
+     - Associates an IPFS Content Identifier (CID) (`walrus_main_metadata_cid`) which points to detailed off-chain metadata and documentation.
+     - The initial `OwnershipStatus` is typically set to `NotSubmitted` or `PendingReview`.
 
-Wormhole Relayer Flow (Authorized Personnel):
+**b. Listing for Auction:**
+   - **Prerequisite:** The asset's `OwnershipStatus` must be `Verified` by the administrator.
+   - **Action:** Lists the verified asset for sale via auction.
+   - **Instruction:** `list_asset_for_auction`
+   - **Details:**
+     - Creates an `AuctionAccount` PDA.
+     - Sets the auction's starting price and duration.
+     - Updates the `AssetAccount`'s `asset_listed_status` to `InAuction`.
+     - A listing fee, payable in Perena USD*, is typically required.
 
-Attestation Submission: An authorized Wormhole relayer, configured via initialize_wormhole_listener, monitors for specific cross-chain messages (VAAs). Upon receiving a relevant VAA (e.g., attesting to a user's asset balance on an EVM chain), the relayer parses it and submits the validated BalanceAttestationPayload to the process_wormhole_balance_attestation instruction. This creates or updates a CrossChainAttestation account on Solana, making the attested off-chain information available to the Dubuu marketplace logic.
+**c. Receiving Sale Proceeds:**
+   - **Prerequisite:** The auction concludes successfully with a winning bid, and the `settle_auction_and_transfer` instruction has been executed.
+   - **Action:** The seller receives the final sale price in Perena USD* to their designated account.
+   - **Details:** The received amount is the final sale price minus the marketplace commission.
 
-These flows are designed to be atomic where necessary and emit events to allow off-chain services and UIs to track marketplace activity.
+---
+
+### 3. Buyer/Bidder Flow
+
+This flow describes how interested buyers can participate in auctions and acquire assets.
+
+**a. Placing Bids:**
+   - **Action:** Participates in active auctions by submitting bids.
+   - **Instruction:** `place_bid`
+   - **Details:**
+     - The bidder specifies their bid amount in Perena USD*.
+     - The bid amount is typically transferred to an escrow mechanism managed by the smart contract.
+     - If a bidder is outbid, their previous bids might be refunded.
+
+**b. Settlement & Ownership Claim:**
+   - **Prerequisite:** The bidder has the `highest_bidder` status when the auction status is `EndedSoldPayPending`.
+   - **Action:** Finalizes the payment and claims ownership of the asset.
+   - **Instruction:** `settle_auction_and_transfer` (can be executed by the winner or an authorized party/crank).
+   - **Details:**
+     - Finalizes the payment from the winner's account (or confirms payment from escrow).
+     - Updates the `current_owner` field in the corresponding `AssetAccount` to the winner's public key, effectively transferring on-chain ownership.
+
+---
+
+### 4. Wormhole Relayer Flow (Authorized Personnel)
+
+This flow involves authorized personnel who facilitate cross-chain interactions using Wormhole.
+
+**a. Initialization (Setup):**
+   - **Action:** Configures the Wormhole relayer listener on Solana.
+   - **Instruction:** `initialize_wormhole_listener`
+
+**b. Attestation Submission:**
+   - **Action:** Monitors for specific cross-chain messages (Verified Accion Attestations - VAAs), parses them, and submits validated information to the Solana smart contract.
+   - **Instruction:** `process_wormhole_balance_attestation`
+   - **Details:**
+     - Upon receiving a relevant VAA (e.g., attesting to a user's asset balance on an EVM chain), the relayer submits the validated `BalanceAttestationPayload`.
+     - This creates or updates a `CrossChainAttestation` account on Solana.
+     - The attested off-chain information becomes available to the Dubuu marketplace logic.
+
+---
+
+## Important Considerations
+
+- **Atomicity:** The operational flows are designed to be atomic where necessary to ensure consistency and prevent partial state changes.
+- **Event Emission:** The smart contract emits events to allow off-chain services and User Interfaces (UIs) to track marketplace activity and respond accordingly.
+
+*Note: "Perena USD*" refers to a specific token used within the Dubuu Marketplace ecosystem.*
+
