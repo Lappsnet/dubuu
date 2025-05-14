@@ -178,19 +178,27 @@ The smart contract functionality is logically divided as follows:
 ### Building the Program
 
 Compile the Anchor smart contract to BPF bytecode and generate the IDL:
-
+```bash
 anchor build
+```
 
-Testing Suite
+### Testing Suite
 Execute integration tests against a local validator instance:
 
-# Start local validator in a separate terminal (if not already running)
-# anchor localnet
+Start local validator in a separate terminal (if not already running)
+```bash
+anchor localnet
+```
 
-# Run tests
+Run tests
+```bash
 anchor test
-# Or, if localnet is managed separately:
-# anchor test --skip-local-validator
+```
+
+Or, if localnet is managed separately:
+```bash
+anchor test --skip-local-validator
+```
 
 ### Operational Flows (Usage)
 The Dubuu Marketplace dApp enables distinct operational pathways tailored to different user roles, ensuring a structured and secure interaction with the platform's functionalities. These flows are orchestrated by invoking specific instructions on the smart contract.
