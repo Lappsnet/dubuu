@@ -1,6 +1,5 @@
-# Dubuu Marketplace MVP: Decentralized Automotive Asset Exchange
-
-**Dubuu: Revolutionizing Automotive Asset Exchange. Securely buy, sell, rent, or leverage your dream car as a tokenized asset on the Solana blockchain.**
+# Dubuu Marketplace MVP WEBSITE https://dubuu.vercel.app/ 
+Revolutionizing Automotive Asset Exchange. Securely buy, sell, rent, or leverage your dream car as a tokenized asset on the Solana blockchain.**
 
 Dubuu Marketplace MVP is an advanced decentralized application (dApp) engineered on the Solana blockchain, leveraging the Anchor framework. It establishes a transparent and efficient ecosystem for the tokenization, management, and exchange of high-value real-world assets (RWAs), with an initial focus on automotive assets. The platform integrates robust features for asset registration, cryptographically verifiable ownership, dynamic auction mechanisms, and secure cross-chain interactions.
 
